@@ -16,6 +16,8 @@ public class TransactionRequest {
 
   private String customerId;
 
+  private String orderId;
+
   private String type;
 
 }

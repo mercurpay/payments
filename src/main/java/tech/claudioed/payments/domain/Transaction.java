@@ -32,4 +32,6 @@ public class Transaction {
 
   private String paymentId;
 
+  private String orderId;
+
 }
