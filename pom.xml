@@ -75,10 +75,10 @@
           <resources>
             <env>
               <JAEGER_SERVICE_NAME>payments</JAEGER_SERVICE_NAME>
-              <MONGO_HOST>mongodb</MONGO_HOST>
+              <MONGO_HOST>mongodb.payments.svc.cluster.local</MONGO_HOST>
               <SERVER_PORT>8080</SERVER_PORT>
-              <REQUESTER_SVC_URL>http://requester</REQUESTER_SVC_URL>
-              <REGISTER_SVC_URL>http://register</REGISTER_SVC_URL>
+              <REQUESTER_SVC_URL>http://payment-checker:8080</REQUESTER_SVC_URL>
+              <REGISTER_SVC_URL>http://register:8080</REGISTER_SVC_URL>
             </env>
             <labels>
               <deployment>
