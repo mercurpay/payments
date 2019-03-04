@@ -12,8 +12,6 @@ public class TransactionRequest {
 
   private BigDecimal value;
 
-  private String requesterId;
-
   private String customerId;
 
   private String orderId;

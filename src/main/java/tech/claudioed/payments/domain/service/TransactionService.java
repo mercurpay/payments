@@ -44,7 +44,7 @@ public class TransactionService {
     try{
       final Requester requester = this.checkRequesterService.requester(requesterId);
       final RegisteredPayment registeredPayment = this.registerPaymentService
-          .registerPayment(request);
+          .registerPayment(request,requesterId);
       final Transaction transaction = Transaction.builder().customerId(request.getCustomerId())
           .requesterId(requester.getId()).id(
               UUID.randomUUID().toString()).type(request.getType()).orderId(request.getOrderId())

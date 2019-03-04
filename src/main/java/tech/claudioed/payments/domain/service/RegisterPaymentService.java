@@ -36,14 +36,14 @@ public class RegisterPaymentService {
   }
 
   @Timed(value = "transaction.register.time.seconds")
-  public RegisteredPayment registerPayment(@NonNull TransactionRequest request) {
+  public RegisteredPayment registerPayment(@NonNull TransactionRequest request,@NonNull String requestId) {
     log.info("Registering transaction  : {}", request);
     final String path = registerSvcUrl + "/api/payments";
     try {
       PaymentRegisterRequest paymentRegisterRequest =
           PaymentRegisterRequest.builder()
               .customerId(request.getCustomerId())
-              .requesterId(request.getRequesterId())
+              .requesterId(requestId)
               .value(request.getValue())
               .build();
       final ResponseEntity<RegisteredPayment> entity =
