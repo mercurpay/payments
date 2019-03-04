@@ -49,7 +49,7 @@ public class RegisterPaymentService {
       final ResponseEntity<RegisteredPayment> entity =
           this.restTemplate.postForEntity(path, paymentRegisterRequest, RegisteredPayment.class);
       registerCounter.increment();
-      log.info("Transaction {} register successfully", request);
+      log.info("Transaction {} registered successfully", entity.getBody());
       return entity.getBody();
     } catch (Exception ex) {
       log.error("Error on register transaction " + request.toString(), ex);
