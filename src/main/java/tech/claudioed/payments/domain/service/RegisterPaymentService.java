@@ -6,6 +6,8 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -46,8 +48,15 @@ public class RegisterPaymentService {
               .requesterId(requestId)
               .value(request.getValue())
               .build();
+
+      final HttpHeaders headers = new HttpHeaders();
+      headers.set("requester-id", requestId);
+
+      final HttpEntity<PaymentRegisterRequest> dataForRequest = new HttpEntity<>(paymentRegisterRequest,
+          headers);
+
       final ResponseEntity<RegisteredPayment> entity =
-          this.restTemplate.postForEntity(path, paymentRegisterRequest, RegisteredPayment.class);
+          this.restTemplate.postForEntity(path, dataForRequest, RegisteredPayment.class);
       registerCounter.increment();
       log.info("Transaction {} registered successfully", entity.getBody());
       return entity.getBody();
