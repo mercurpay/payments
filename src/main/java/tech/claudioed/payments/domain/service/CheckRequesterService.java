@@ -6,6 +6,9 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -38,8 +41,11 @@ public class CheckRequesterService {
     log.info("Checking Requester ID : {}", id);
     final String path = requesterSvcUrl + "/api/requesters/{id}";
     try {
-      final ResponseEntity<Requester> entity =
-          this.restTemplate.getForEntity(path, Requester.class, id);
+      final HttpHeaders headers = new HttpHeaders();
+      headers.set("requester-id", id);
+      final ResponseEntity<Requester> entity = this.restTemplate
+          .exchange(path, HttpMethod.GET, new HttpEntity<>(headers),
+              Requester.class, id);
       requesterCounter.increment();
       log.info("Requester ID : {} is valid", id);
       return entity.getBody();
