@@ -51,6 +51,8 @@ public class RegisterPaymentService {
               .orderId(request.getOrderId())
               .build();
 
+      log.info("Request for register payment {}",paymentRegisterRequest);
+
       final HttpHeaders headers = new HttpHeaders();
       headers.set("requester-id", requestId);
 
