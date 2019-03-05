@@ -1,6 +1,7 @@
 package tech.claudioed.payments.domain.service;
 
 import io.micrometer.core.instrument.Counter;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -10,13 +11,11 @@ import tech.claudioed.payments.domain.RegisteredPayment;
 import tech.claudioed.payments.domain.Requester;
 import tech.claudioed.payments.domain.Transaction;
 import tech.claudioed.payments.domain.exception.TransactionErrorException;
+import tech.claudioed.payments.domain.exception.TransactionNotFound;
 import tech.claudioed.payments.domain.repository.TransactionRepository;
 import tech.claudioed.payments.domain.resource.data.TransactionRequest;
 
-/**
- * @author claudioed on 2019-03-02.
- * Project payments
- */
+/** @author claudioed on 2019-03-02. Project payments */
 @Slf4j
 @Service
 public class TransactionService {
@@ -29,7 +28,8 @@ public class TransactionService {
 
   private final Counter transactionCounter;
 
-  public TransactionService(TransactionRepository transactionRepository,
+  public TransactionService(
+      TransactionRepository transactionRepository,
       CheckRequesterService checkRequesterService,
       RegisterPaymentService registerPaymentService,
       @Qualifier("transactionCounter") Counter transactionCounter) {
@@ -39,23 +39,39 @@ public class TransactionService {
     this.transactionCounter = transactionCounter;
   }
 
-  public Transaction processTransaction(@NonNull TransactionRequest request,String requesterId){
+  public Transaction processTransaction(@NonNull TransactionRequest request, String requesterId) {
     log.info("Processing transaction  : {}", request);
-    try{
+    try {
       final Requester requester = this.checkRequesterService.requester(requesterId);
-      final RegisteredPayment registeredPayment = this.registerPaymentService
-          .registerPayment(request,requesterId);
-      final Transaction transaction = Transaction.builder().customerId(request.getCustomerId())
-          .requesterId(requester.getId()).id(
-              UUID.randomUUID().toString()).type(request.getType()).orderId(request.getOrderId())
-          .paymentId(registeredPayment.getId()).value(request.getValue()).build();
+      final RegisteredPayment registeredPayment =
+          this.registerPaymentService.registerPayment(request, requesterId);
+      final Transaction transaction =
+          Transaction.builder()
+              .customerId(request.getCustomerId())
+              .requesterId(requester.getId())
+              .id(UUID.randomUUID().toString())
+              .type(request.getType())
+              .orderId(request.getOrderId())
+              .paymentId(registeredPayment.getId())
+              .value(request.getValue())
+              .build();
       transactionCounter.increment();
       log.info("New transaction created ID  : {}", transaction.getId());
       return this.transactionRepository.save(transaction);
-    }catch (Exception ex){
-      log.error("Error on processing transaction " + request.toString(),ex);
+    } catch (Exception ex) {
+      log.error("Error on processing transaction " + request.toString(), ex);
       throw new TransactionErrorException("Invalid Transaction");
     }
+  }
+
+  public Transaction find(String id) {
+    log.info("Finding transaction  : {}", id);
+    final Optional<Transaction> transaction = this.transactionRepository.findById(id);
+    if (transaction.isPresent()) {
+      return transaction.get();
+    }
+    log.error("Transaction id {} not found ");
+    throw new TransactionNotFound("Transaction not Found");
   }
 
 }

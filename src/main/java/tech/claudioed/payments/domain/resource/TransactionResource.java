@@ -2,6 +2,8 @@ package tech.claudioed.payments.domain.resource;
 
 import io.micrometer.core.annotation.Timed;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -35,9 +37,21 @@ public class TransactionResource {
           this.transactionService.processTransaction(transactionRequest, requesterId);
       final UriComponents uriComponents =
           uriBuilder.path("api/transactions/{id}").buildAndExpand(transaction.getId());
-      return ResponseEntity.created(uriComponents.toUri()).build();
+      return ResponseEntity.created(uriComponents.toUri()).body(transaction);
     } catch (Exception ex) {
       return ResponseEntity.unprocessableEntity().build();
     }
   }
+
+  @GetMapping("/{id}")
+  @Timed(value = "transaction.find.time.seconds")
+  public ResponseEntity<Transaction> find(@PathVariable("id") String id){
+    try{
+      final Transaction transaction = this.transactionService.find(id);
+      return ResponseEntity.ok(transaction);
+    }catch (Exception ex){
+      return ResponseEntity.notFound().build();
+    }
+  }
+
 }
