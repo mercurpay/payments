@@ -47,6 +47,7 @@ public class RegisterPaymentService {
               .customerId(request.getCustomerId())
               .requesterId(requestId)
               .value(request.getValue())
+              .crmUrl(request.getCrmUrl())
               .build();
 
       final HttpHeaders headers = new HttpHeaders();

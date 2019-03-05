@@ -43,8 +43,7 @@ public class TransactionService {
     log.info("Processing transaction for order id : {} ", request.getOrderId());
     try {
       final Requester requester = this.checkRequesterService.requester(requesterId);
-      final RegisteredPayment registeredPayment =
-          this.registerPaymentService.registerPayment(request, requesterId);
+      final RegisteredPayment registeredPayment = this.registerPaymentService.registerPayment(request, requesterId);
       final Transaction transaction =
           Transaction.builder()
               .customerId(request.getCustomerId())

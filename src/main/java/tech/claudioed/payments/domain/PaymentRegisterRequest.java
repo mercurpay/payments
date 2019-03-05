@@ -22,4 +22,6 @@ public class PaymentRegisterRequest {
 
   private String customerId;
 
+  private String crmUrl;
+
 }
