@@ -40,7 +40,7 @@ public class TransactionService {
   }
 
   public Transaction processTransaction(@NonNull TransactionRequest request, String requesterId) {
-    log.info("Processing transaction  : {}", request);
+    log.info("Processing transaction for order id : {} ", request.getOrderId());
     try {
       final Requester requester = this.checkRequesterService.requester(requesterId);
       final RegisteredPayment registeredPayment =
