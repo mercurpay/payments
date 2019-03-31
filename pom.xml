@@ -55,9 +55,9 @@
     </dependency>
 
     <dependency>
-      <groupId>io.opentracing.contrib</groupId>
-      <artifactId>opentracing-spring-jaeger-web-starter</artifactId>
-      <version>1.0.2</version>
+      <groupId>io.jaegertracing</groupId>
+      <artifactId>jaeger-tracerresolver</artifactId>
+      <version>0.34.0</version>
     </dependency>
 
   </dependencies>
