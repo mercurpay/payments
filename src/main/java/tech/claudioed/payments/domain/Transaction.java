@@ -34,4 +34,6 @@ public class Transaction {
 
   private String orderId;
 
+  private String city;
+
 }
