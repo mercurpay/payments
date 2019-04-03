@@ -1,6 +1,7 @@
 package tech.claudioed.payments.domain.resource;
 
 import io.micrometer.core.annotation.Timed;
+import io.opentracing.Span;
 import io.opentracing.Tracer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,12 +39,16 @@ public class TransactionResource {
       UriComponentsBuilder uriBuilder) {
     try {
       final Transaction transaction = this.transactionService.processTransaction(transactionRequest, requesterId);
-      this.tracer.activeSpan().setBaggageItem("type",transactionRequest.getType())
-          .setTag("transaction-id",transaction.getId()).setTag("order-id",transaction.getOrderId())
-          .setTag("payment-id",transaction.getPaymentId()).setTag("customer-id",transaction.getCustomerId())
-          .setTag("requester-id",requesterId);
+      final Span transactionSpan = this.tracer.buildSpan("new-transaction").start()
+          .setBaggageItem("type", transactionRequest.getType())
+          .setTag("transaction-id", transaction.getId())
+          .setTag("order-id", transaction.getOrderId())
+          .setTag("payment-id", transaction.getPaymentId())
+          .setTag("customer-id", transaction.getCustomerId())
+          .setTag("requester-id", requesterId);
       final UriComponents uriComponents =
           uriBuilder.path("api/transactions/{id}").buildAndExpand(transaction.getId());
+      transactionSpan.finish();
       return ResponseEntity.created(uriComponents.toUri()).body(transaction);
     } catch (Exception ex) {
       return ResponseEntity.unprocessableEntity().build();
