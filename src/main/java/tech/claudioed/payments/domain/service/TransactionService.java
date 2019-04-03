@@ -28,15 +28,19 @@ public class TransactionService {
 
   private final Counter transactionCounter;
 
+  private final FraudService fraudService;
+
   public TransactionService(
       TransactionRepository transactionRepository,
       CheckRequesterService checkRequesterService,
       RegisterPaymentService registerPaymentService,
-      @Qualifier("transactionCounter") Counter transactionCounter) {
+      @Qualifier("transactionCounter") Counter transactionCounter,
+      FraudService fraudService) {
     this.transactionRepository = transactionRepository;
     this.checkRequesterService = checkRequesterService;
     this.registerPaymentService = registerPaymentService;
     this.transactionCounter = transactionCounter;
+    this.fraudService = fraudService;
   }
 
   public Transaction processTransaction(@NonNull TransactionRequest request, String requesterId) {
@@ -56,6 +60,7 @@ public class TransactionService {
               .build();
       transactionCounter.increment();
       log.info("New transaction created ID  : {}", transaction.getId());
+      fraudService.analyzeTransaction(transaction);
       return this.transactionRepository.save(transaction);
     } catch (Exception ex) {
       log.error("Error on processing transaction " + request.toString(), ex);
