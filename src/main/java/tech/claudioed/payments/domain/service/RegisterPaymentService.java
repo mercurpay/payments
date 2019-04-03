@@ -63,12 +63,10 @@ public class RegisterPaymentService {
       headers.set("requester-id", requestId);
       final HttpEntity<PaymentRegisterRequest> dataForRequest = new HttpEntity<>(paymentRegisterRequest,
           headers);
-      final Span span = this.tracer.buildSpan("registering-payment").start();
       final ResponseEntity<RegisteredPayment> entity =
           this.restTemplate.postForEntity(path, dataForRequest, RegisteredPayment.class);
       final RegisteredPayment transaction = entity.getBody();
-      span.log(Collections.singletonMap("payment-id",transaction.getId()));
-      span.finish();
+      this.tracer.activeSpan().log(Collections.singletonMap("payment-id",transaction.getId()));
       registerCounter.increment();
       log.info("Transaction {} registered successfully",transaction );
       return entity.getBody();

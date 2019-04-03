@@ -2,7 +2,6 @@ package tech.claudioed.payments.domain.service;
 
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
-import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,7 +50,6 @@ public class CheckRequesterService {
     try {
       final HttpHeaders headers = new HttpHeaders();
       headers.set("requester-id", id);
-      final Span span = this.tracer.buildSpan("checking-requester").start();
       final ResponseEntity<Requester> entity = this.restTemplate
           .exchange(path, HttpMethod.GET, new HttpEntity<>(headers),
               Requester.class, id);
@@ -59,7 +57,7 @@ public class CheckRequesterService {
           { "requester-id", id },
           { "status", "valid" },
       }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-      span.log(logs).finish();
+      this.tracer.activeSpan().log(logs).finish();
       requesterCounter.increment();
       log.info("Requester ID : {} is valid", id);
       return entity.getBody();
