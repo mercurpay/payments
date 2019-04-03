@@ -22,8 +22,7 @@ public class FraudService {
 
   public void analyzeTransaction(@NonNull Transaction transaction) throws JsonProcessingException {
     log.info("Received {} to be analyzed", transaction);
-    connection.publish("fraud.analyze.topic", objectMapper.writeValueAsBytes(transaction));
-    log.info("{} was successfully posted to be analyzed", transaction);
+    connection.publish("fraud-analyze-topic", objectMapper.writeValueAsBytes(transaction));
   }
 
 }
