@@ -2,6 +2,9 @@ package tech.claudioed.payments.domain.service;
 
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import java.util.Collections;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,10 +30,13 @@ public class RegisterPaymentService {
 
   private final Counter registerCounter;
 
+  private final Tracer tracer;
+
   public RegisterPaymentService(
       RestTemplate restTemplate,
       @Value("${register.service.url}") String registerSvcUrl,
-      @Qualifier("registerCounter") Counter registerCounter) {
+      @Qualifier("registerCounter") Counter registerCounter, Tracer tracer) {
+    this.tracer = tracer;
     log.info("REGISTER SERVICE URL: {}", registerSvcUrl);
     this.restTemplate = restTemplate;
     this.registerSvcUrl = registerSvcUrl;
@@ -55,14 +61,14 @@ public class RegisterPaymentService {
 
       final HttpHeaders headers = new HttpHeaders();
       headers.set("requester-id", requestId);
-
       final HttpEntity<PaymentRegisterRequest> dataForRequest = new HttpEntity<>(paymentRegisterRequest,
           headers);
-
       final ResponseEntity<RegisteredPayment> entity =
           this.restTemplate.postForEntity(path, dataForRequest, RegisteredPayment.class);
+      final RegisteredPayment transaction = entity.getBody();
+      this.tracer.activeSpan().log(Collections.singletonMap("payment-id",transaction.getId()));
       registerCounter.increment();
-      log.info("Transaction {} registered successfully", entity.getBody());
+      log.info("Transaction {} registered successfully",transaction );
       return entity.getBody();
     } catch (Exception ex) {
       log.error("Error on register transaction " + request.toString(), ex);
