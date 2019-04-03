@@ -60,6 +60,13 @@
       <version>1.0.3</version>
     </dependency>
 
+    <!-- Nats -->
+    <dependency>
+      <groupId>io.nats</groupId>
+      <artifactId>jnats</artifactId>
+      <version>2.4.2</version>
+    </dependency>
+
   </dependencies>
 
   <build>
