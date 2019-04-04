@@ -57,6 +57,7 @@ public class TransactionService {
               .orderId(request.getOrderId())
               .paymentId(registeredPayment.getId())
               .value(request.getValue())
+              .city(request.getCity())
               .build();
       transactionCounter.increment();
       log.info("New transaction created ID  : {}", transaction.getId());

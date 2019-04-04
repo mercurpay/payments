@@ -20,4 +20,6 @@ public class TransactionRequest {
 
   private String crmUrl;
 
+  private String city;
+
 }
