@@ -60,6 +60,12 @@
       <version>1.0.3</version>
     </dependency>
 
+    <dependency>
+      <groupId>io.opentracing.contrib</groupId>
+      <artifactId>opentracing-spring-cloud-starter</artifactId>
+      <version>0.2.4</version>
+    </dependency>
+
     <!-- Nats -->
     <dependency>
       <groupId>io.nats</groupId>
