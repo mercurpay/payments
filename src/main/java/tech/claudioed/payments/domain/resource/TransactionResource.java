@@ -1,6 +1,7 @@
 package tech.claudioed.payments.domain.resource;
 
 import io.micrometer.core.annotation.Timed;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import org.springframework.http.ResponseEntity;
@@ -37,33 +38,38 @@ public class TransactionResource {
       @RequestBody TransactionRequest transactionRequest,
       @RequestHeader("requester-id") String requesterId,
       UriComponentsBuilder uriBuilder) {
-    try {
-      final Transaction transaction = this.transactionService.processTransaction(transactionRequest, requesterId);
-      final Span transactionSpan = this.tracer.buildSpan("new-transaction").start()
-          .setBaggageItem("type", transactionRequest.getType())
-          .setTag("transaction-id", transaction.getId())
-          .setTag("order-id", transaction.getOrderId())
+    Span transactionSpan = tracer
+        .buildSpan("new-transaction")
+        .start()
+        .setTag("order-id", transactionRequest.getOrderId())
+        .setTag("customer-id", transactionRequest.getCustomerId())
+        .setTag("requester-id", requesterId);
+    try (Scope scope = tracer.scopeManager().activate(transactionSpan, false)) {
+      tracer.scopeManager().activate(transactionSpan,false);
+      final Transaction transaction =
+          this.transactionService.processTransaction(transactionRequest, requesterId);
+      transactionSpan
           .setTag("payment-id", transaction.getPaymentId())
-          .setTag("customer-id", transaction.getCustomerId())
-          .setTag("requester-id", requesterId);
+          .setTag("transaction-id", transaction.getId())
+          .finish();
       final UriComponents uriComponents =
           uriBuilder.path("api/transactions/{id}").buildAndExpand(transaction.getId());
-      transactionSpan.finish();
       return ResponseEntity.created(uriComponents.toUri()).body(transaction);
     } catch (Exception ex) {
       return ResponseEntity.unprocessableEntity().build();
+    } finally {
+      transactionSpan.finish();
     }
   }
 
   @GetMapping("/{id}")
   @Timed(value = "transaction.find.time.seconds")
-  public ResponseEntity<Transaction> find(@PathVariable("id") String id){
-    try{
+  public ResponseEntity<Transaction> find(@PathVariable("id") String id) {
+    try {
       final Transaction transaction = this.transactionService.find(id);
       return ResponseEntity.ok(transaction);
-    }catch (Exception ex){
+    } catch (Exception ex) {
       return ResponseEntity.notFound().build();
     }
   }
-
 }
