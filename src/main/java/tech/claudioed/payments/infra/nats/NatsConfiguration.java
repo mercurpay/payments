@@ -4,6 +4,7 @@ import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
 import java.io.IOException;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -20,14 +21,16 @@ public class NatsConfiguration {
       @Value("${nats.password}") String password
   ) throws IOException, InterruptedException {
     log.info("Configuring NATS Connection, Host[{}]", host);
-    Options options = new Options.Builder()
-        .server("nats://" + host + ":4222")
-        .userInfo(username, password)
-        .build();
-
-    Connection connection = Nats.connect(options);
-    log.info("Configured NATS Connection, Status=[{}]", connection.getStatus());
-    return connection;
+    return Nats.connect(new Options.Builder()
+        .connectionTimeout(Duration.ofSeconds(2))
+        .pingInterval(Duration.ofSeconds(10))
+        .reconnectWait(Duration.ofSeconds(1))
+        .userInfo(username,password)
+        .maxReconnects(-1)
+        .reconnectBufferSize(-1)
+        .connectionName(System.getenv("HOSTNAME"))
+        .server(host)
+        .build());
   }
 
 }
