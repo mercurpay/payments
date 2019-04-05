@@ -43,7 +43,7 @@ public class TransactionService {
     this.fraudService = fraudService;
   }
 
-  public Transaction processTransaction(@NonNull TransactionRequest request, String requesterId) {
+  public Transaction processTransaction(@NonNull TransactionRequest request, @NonNull String requesterId) {
     log.info("Processing transaction for order id : {} ", request.getOrderId());
     try {
       final Requester requester = this.checkRequesterService.requester(requesterId);
