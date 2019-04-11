@@ -22,4 +22,6 @@ public class TransactionRequest {
 
   private String city;
 
+  private String authCode;
+
 }
