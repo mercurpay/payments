@@ -15,4 +15,9 @@ public class Customer {
   private String id;
 
   private Boolean twoFactorEnabled;
+
+  public Boolean twoFactorEnabled(){
+    return this.twoFactorEnabled;
+  }
+
 }
