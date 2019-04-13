@@ -26,7 +26,7 @@ public class TwoFactorValidatorService {
 
   public CheckedAuthCode check(RequestCheckAuthCode request) {
     log.info("Checking AuthCode {} for userId {}",request.getId(),request.getUserId());
-    this.restTemplate.put(this.paymentAuthorizationUrl + "/{id}", request, request.getId());
+    this.restTemplate.put(this.paymentAuthorizationUrl + "/api/authorizations" + "/{id}", request, request.getId());
     log.info("AuthCode ID {} is valid",request.getId());
     return CheckedAuthCode.builder().id(request.getId()).build();
   }
