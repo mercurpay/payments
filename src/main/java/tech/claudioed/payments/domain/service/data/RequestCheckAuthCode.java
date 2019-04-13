@@ -1,5 +1,6 @@
 package tech.claudioed.payments.domain.service.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,6 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RequestCheckAuthCode {
 
+  @JsonIgnore
   private String id;
 
   private String userId;
