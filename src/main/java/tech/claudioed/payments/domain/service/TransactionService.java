@@ -59,19 +59,6 @@ public class TransactionService {
     log.info("Processing transaction for order id : {} ", request.getOrderId());
     try {
       final Requester requester = this.checkRequesterService.requester(requesterId);
-      final RegisteredPayment registeredPayment =
-          this.registerPaymentService.registerPayment(request, requesterId);
-      final Transaction transaction =
-          Transaction.builder()
-              .customerId(request.getCustomerId())
-              .requesterId(requester.getId())
-              .id(UUID.randomUUID().toString())
-              .type(request.getType())
-              .orderId(request.getOrderId())
-              .paymentId(registeredPayment.getId())
-              .value(request.getValue())
-              .city(request.getCity())
-              .build();
       final Customer customer = this.customerService.customer(request.getCustomerId());
       if (customer.twoFactorEnabled()) {
         log.info("Customer {} has two factor enabled",request.getCustomerId());
@@ -85,8 +72,20 @@ public class TransactionService {
         log.info("AuthCode {} is valid ", authCode.getId());
       }else{
         log.info("Customer {} hasn't two factor enabled",request.getCustomerId());
-
       }
+      final RegisteredPayment registeredPayment =
+          this.registerPaymentService.registerPayment(request, requesterId);
+      final Transaction transaction =
+          Transaction.builder()
+              .customerId(request.getCustomerId())
+              .requesterId(requester.getId())
+              .id(UUID.randomUUID().toString())
+              .type(request.getType())
+              .orderId(request.getOrderId())
+              .paymentId(registeredPayment.getId())
+              .value(request.getValue())
+              .city(request.getCity())
+              .build();
       transactionCounter.increment();
       log.info("New transaction created ID  : {}", transaction.getId());
       fraudService.analyzeTransaction(transaction);

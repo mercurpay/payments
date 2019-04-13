@@ -2,6 +2,7 @@ package tech.claudioed.payments.domain.service;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -27,24 +28,27 @@ public class CustomerService {
   public CustomerService(
       @Value("${customer.service.host}") String customerHost,
       @Value("${customer.service.port}") Integer customerPort) {
-    log.info("Customer SVC URL {}",customerHost);
-    log.info("Customer SVC PORT {}",customerPort);
+    log.info("Customer SVC URL {}", customerHost);
+    log.info("Customer SVC PORT {}", customerPort);
     this.customerHost = customerHost;
     this.customerPort = customerPort;
-    this.managedChannel = ManagedChannelBuilder.forAddress(this.customerHost, this.customerPort).usePlaintext().build();
+    this.managedChannel =
+        ManagedChannelBuilder.forAddress(this.customerHost, this.customerPort)
+            .usePlaintext()
+            .build();
   }
 
   public Customer customer(String id) {
-    log.info("Finding customer ID {} data",id);
+    log.info("Finding customer ID {} data", id);
     final CustomerServiceBlockingStub stub =
-        CustomerServiceGrpc.newBlockingStub(this.managedChannel);
+        CustomerServiceGrpc.newBlockingStub(this.managedChannel)
+            .withDeadlineAfter(500, TimeUnit.MILLISECONDS);
     val request = CustomerFindRequest.newBuilder().setId(id).build();
     final CustomerFindResponse response = stub.findCustomer(request);
-    log.info("Customer ID {} is valid ",id);
+    log.info("Customer ID {} is valid ", id);
     return Customer.builder()
         .id(response.getId())
         .twoFactorEnabled(Boolean.valueOf(response.getTwoFactorEnabled()))
         .build();
   }
-
 }
