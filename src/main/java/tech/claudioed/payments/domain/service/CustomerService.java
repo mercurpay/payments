@@ -25,8 +25,8 @@ public class CustomerService {
   private final ManagedChannel managedChannel;
 
   public CustomerService(
-      @Value("${customer.host}") String customerHost,
-      @Value("${customer.port}") Integer customerPort) {
+      @Value("${customer.service.host}") String customerHost,
+      @Value("${customer.service.port}") Integer customerPort) {
     log.info("Customer SVC URL {}",customerHost);
     log.info("Customer SVC PORT {}",customerPort);
     this.customerHost = customerHost;
