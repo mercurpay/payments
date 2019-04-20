@@ -2,6 +2,8 @@ package tech.claudioed.payments.domain.service;
 
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
+import io.opentracing.Scope;
+import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -45,21 +47,20 @@ public class CheckRequesterService {
 
   @Timed(value = "transaction.requester.time.seconds")
   public Requester requester(@NonNull String id) {
-    log.info("Checking Requester ID : {}", id);
-    final String path = requesterSvcUrl + "/api/requesters/{id}";
-    try {
+    final Span activeSpan = this.tracer.activeSpan();
+    final Span requesterSpan = this.tracer.buildSpan("checking-requester").asChildOf(activeSpan).start()
+        .setTag("requester-id", id).setBaggageItem("requester-id", id);
+    try (Scope scope = tracer.scopeManager().activate(requesterSpan, false)) {
+      log.info("Checking Requester ID : {}", id);
+      final String path = requesterSvcUrl + "/api/requesters/{id}";
       final HttpHeaders headers = new HttpHeaders();
       headers.set("requester-id", id);
       final ResponseEntity<Requester> entity = this.restTemplate
           .exchange(path, HttpMethod.GET, new HttpEntity<>(headers),
               Requester.class, id);
-      Map<String, String> logs = Stream.of(new String[][] {
-          { "requester-id", id },
-          { "status", "valid" },
-      }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-      this.tracer.activeSpan().log(logs).finish();
       requesterCounter.increment();
       log.info("Requester ID : {} is valid", id);
+      requesterSpan.finish();
       return entity.getBody();
     } catch (Exception ex) {
       log.error("Invalid Requester " + id, ex);

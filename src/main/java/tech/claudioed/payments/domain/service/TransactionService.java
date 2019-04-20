@@ -1,6 +1,9 @@
 package tech.claudioed.payments.domain.service;
 
 import io.micrometer.core.instrument.Counter;
+import io.opentracing.Scope;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.NonNull;
@@ -37,6 +40,8 @@ public class TransactionService {
 
   private final TwoFactorValidatorService twoFactorValidatorService;
 
+  private final Tracer tracer;
+
   public TransactionService(
       TransactionRepository transactionRepository,
       CheckRequesterService checkRequesterService,
@@ -44,7 +49,7 @@ public class TransactionService {
       @Qualifier("transactionCounter") Counter transactionCounter,
       FraudService fraudService,
       CustomerService customerService,
-      TwoFactorValidatorService twoFactorValidatorService) {
+      TwoFactorValidatorService twoFactorValidatorService, Tracer tracer) {
     this.transactionRepository = transactionRepository;
     this.checkRequesterService = checkRequesterService;
     this.registerPaymentService = registerPaymentService;
@@ -52,24 +57,31 @@ public class TransactionService {
     this.fraudService = fraudService;
     this.customerService = customerService;
     this.twoFactorValidatorService = twoFactorValidatorService;
+    this.tracer = tracer;
   }
 
   public Transaction processTransaction(
       @NonNull TransactionRequest request, @NonNull String requesterId) {
+    Span transactionSpan = tracer
+        .buildSpan("process-transaction")
+        .start()
+        .setTag("order-id", request.getOrderId())
+        .setTag("customer-id", request.getCustomerId())
+        .setTag("requester-id", requesterId);
     log.info("Processing transaction for order id : {} ", request.getOrderId());
-    try {
+    try (Scope scope = tracer.scopeManager().activate(transactionSpan, false)) {
       final Requester requester = this.checkRequesterService.requester(requesterId);
       final Customer customer = this.customerService.customer(request.getCustomerId());
+      final Span activeSpan = tracer.activeSpan();
+      activeSpan.setTag("two-factor-enabled",customer.getTwoFactorEnabled()).setTag("customer-id",customer.getId());
       if (customer.twoFactorEnabled()) {
         log.info("Customer {} has two factor enabled",request.getCustomerId());
-        final RequestCheckAuthCode authCode = RequestCheckAuthCode.builder()
-            .id(request.getAuthCode())
-            .userId(request.getCustomerId())
-            .value(request.getValue())
-            .build();
-        final CheckedAuthCode checkedAuthCode = this.twoFactorValidatorService.check(
-            authCode);
-        log.info("AuthCode {} is valid ", authCode.getId());
+        final CheckedAuthCode checkedAuthCode = this.twoFactorValidatorService.check(RequestCheckAuthCode.builder()
+                .id(request.getAuthCode())
+                .userId(request.getCustomerId())
+                .value(request.getValue())
+                .build());
+        log.info("AuthCode {} is valid ", request.getAuthCode());
       }else{
         log.info("Customer {} hasn't two factor enabled",request.getCustomerId());
       }
@@ -89,6 +101,7 @@ public class TransactionService {
       transactionCounter.increment();
       log.info("New transaction created ID  : {}", transaction.getId());
       fraudService.analyzeTransaction(transaction);
+      transactionSpan.finish();
       return this.transactionRepository.save(transaction);
     } catch (Exception ex) {
       log.error("Error on processing transaction " + request.toString(), ex);

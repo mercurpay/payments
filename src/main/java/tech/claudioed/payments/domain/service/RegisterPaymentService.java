@@ -2,6 +2,7 @@ package tech.claudioed.payments.domain.service;
 
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.util.Collections;
@@ -45,9 +46,11 @@ public class RegisterPaymentService {
 
   @Timed(value = "transaction.register.time.seconds")
   public RegisteredPayment registerPayment(@NonNull TransactionRequest request,@NonNull String requestId) {
-    log.info("Registering transaction  : {}", request);
-    final String path = registerSvcUrl + "/api/payments";
-    try {
+    final Span activeSpan = this.tracer.activeSpan();
+    final Span registerPaymentSpan = this.tracer.buildSpan("register-payment").asChildOf(activeSpan).start();
+    try (Scope scope = tracer.scopeManager().activate(registerPaymentSpan, false)) {
+      log.info("Registering transaction  : {}", request);
+      final String path = registerSvcUrl + "/api/payments";
       PaymentRegisterRequest paymentRegisterRequest =
           PaymentRegisterRequest.builder()
               .customerId(request.getCustomerId())
@@ -56,9 +59,7 @@ public class RegisterPaymentService {
               .crmUrl(request.getCrmUrl())
               .orderId(request.getOrderId())
               .build();
-
       log.info("Request for register payment {}",paymentRegisterRequest);
-
       final HttpHeaders headers = new HttpHeaders();
       headers.set("requester-id", requestId);
       final HttpEntity<PaymentRegisterRequest> dataForRequest = new HttpEntity<>(paymentRegisterRequest,
@@ -66,9 +67,10 @@ public class RegisterPaymentService {
       final ResponseEntity<RegisteredPayment> entity =
           this.restTemplate.postForEntity(path, dataForRequest, RegisteredPayment.class);
       final RegisteredPayment transaction = entity.getBody();
-      this.tracer.activeSpan().log(Collections.singletonMap("payment-id",transaction.getId()));
+      registerPaymentSpan.setTag("payment-id",transaction.getId());
       registerCounter.increment();
       log.info("Transaction {} registered successfully",transaction );
+      registerPaymentSpan.finish();
       return entity.getBody();
     } catch (Exception ex) {
       log.error("Error on register transaction " + request.toString(), ex);

@@ -1,9 +1,6 @@
 package tech.claudioed.payments.domain.resource;
 
 import io.micrometer.core.annotation.Timed;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.Tracer;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,11 +22,8 @@ public class TransactionResource {
 
   private final TransactionService transactionService;
 
-  private final Tracer tracer;
-
-  public TransactionResource(TransactionService transactionService, Tracer tracer) {
+  public TransactionResource(TransactionService transactionService) {
     this.transactionService = transactionService;
-    this.tracer = tracer;
   }
 
   @PostMapping
@@ -38,27 +32,14 @@ public class TransactionResource {
       @RequestBody TransactionRequest transactionRequest,
       @RequestHeader("requester-id") String requesterId,
       UriComponentsBuilder uriBuilder) {
-    Span transactionSpan = tracer
-        .buildSpan("new-transaction")
-        .start()
-        .setTag("order-id", transactionRequest.getOrderId())
-        .setTag("customer-id", transactionRequest.getCustomerId())
-        .setTag("requester-id", requesterId);
-    try (Scope scope = tracer.scopeManager().activate(transactionSpan, false)) {
-      tracer.scopeManager().activate(transactionSpan,false);
+    try {
       final Transaction transaction =
           this.transactionService.processTransaction(transactionRequest, requesterId);
-      transactionSpan
-          .setTag("payment-id", transaction.getPaymentId())
-          .setTag("transaction-id", transaction.getId())
-          .finish();
       final UriComponents uriComponents =
           uriBuilder.path("api/transactions/{id}").buildAndExpand(transaction.getId());
       return ResponseEntity.created(uriComponents.toUri()).body(transaction);
     } catch (Exception ex) {
       return ResponseEntity.unprocessableEntity().build();
-    } finally {
-      transactionSpan.finish();
     }
   }
 

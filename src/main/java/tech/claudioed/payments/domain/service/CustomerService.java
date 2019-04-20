@@ -2,8 +2,10 @@ package tech.claudioed.payments.domain.service;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.opentracing.Scope;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
 import java.util.concurrent.TimeUnit;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,9 +27,12 @@ public class CustomerService {
 
   private final ManagedChannel managedChannel;
 
+  private final Tracer tracer;
+
   public CustomerService(
       @Value("${customer.service.host}") String customerHost,
-      @Value("${customer.service.port}") Integer customerPort) {
+      @Value("${customer.service.port}") Integer customerPort, Tracer tracer) {
+    this.tracer = tracer;
     log.info("Customer SVC URL {}", customerHost);
     log.info("Customer SVC PORT {}", customerPort);
     this.customerHost = customerHost;
@@ -39,16 +44,23 @@ public class CustomerService {
   }
 
   public Customer customer(String id) {
-    log.info("Finding customer ID {} data", id);
-    final CustomerServiceBlockingStub stub =
-        CustomerServiceGrpc.newBlockingStub(this.managedChannel)
-            .withDeadlineAfter(500, TimeUnit.MILLISECONDS);
-    val request = CustomerFindRequest.newBuilder().setId(id).build();
-    final CustomerFindResponse response = stub.findCustomer(request);
-    log.info("Customer ID {} is valid ", id);
-    return Customer.builder()
-        .id(response.getId())
-        .twoFactorEnabled(Boolean.valueOf(response.getTwoFactorEnabled()))
-        .build();
+    final Span activeSpan = this.tracer.activeSpan();
+    final Span customerDataSpan = this.tracer.buildSpan("finding-customer-data").asChildOf(activeSpan).start()
+        .setTag("customer-id", id);
+    try (Scope scope = tracer.scopeManager().activate(customerDataSpan, false)) {
+      log.info("Finding customer ID {} data", id);
+      final CustomerServiceBlockingStub stub =
+          CustomerServiceGrpc.newBlockingStub(this.managedChannel)
+              .withDeadlineAfter(700, TimeUnit.MILLISECONDS);
+      val request = CustomerFindRequest.newBuilder().setId(id).build();
+      final CustomerFindResponse response = stub.findCustomer(request);
+      log.info("Customer ID {} is valid ", id);
+      customerDataSpan.finish();
+      return Customer.builder()
+          .id(response.getId())
+          .twoFactorEnabled(Boolean.valueOf(response.getTwoFactorEnabled()))
+          .build();
+    }
   }
+
 }
