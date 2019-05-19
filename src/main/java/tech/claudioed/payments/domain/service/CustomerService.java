@@ -29,10 +29,14 @@ public class CustomerService {
 
   private final Tracer tracer;
 
+  private final Long grpcDeadline;
+
   public CustomerService(
       @Value("${customer.service.host}") String customerHost,
-      @Value("${customer.service.port}") Integer customerPort, Tracer tracer) {
+      @Value("${customer.service.port}") Integer customerPort, Tracer tracer,
+      @Value("${grpc.deadline}") Long grpcDeadline) {
     this.tracer = tracer;
+    this.grpcDeadline = grpcDeadline;
     log.info("Customer SVC URL {}", customerHost);
     log.info("Customer SVC PORT {}", customerPort);
     this.customerHost = customerHost;
@@ -51,7 +55,7 @@ public class CustomerService {
       log.info("Finding customer ID {} data", id);
       final CustomerServiceBlockingStub stub =
           CustomerServiceGrpc.newBlockingStub(this.managedChannel)
-              .withDeadlineAfter(700, TimeUnit.MILLISECONDS);
+              .withDeadlineAfter(grpcDeadline, TimeUnit.SECONDS);
       val request = CustomerFindRequest.newBuilder().setId(id).build();
       final CustomerFindResponse response = stub.findCustomer(request);
       log.info("Customer ID {} is valid ", id);
