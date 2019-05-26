@@ -56,7 +56,8 @@ public class RegisterPaymentService {
               .customerId(request.getCustomerId())
               .requesterId(requestId)
               .value(request.getValue())
-              .crmUrl(request.getCrmUrl())
+              .crmId(request.getCrmId())
+              .token(request.getToken())
               .orderId(request.getOrderId())
               .build();
       log.info("Request for register payment {}",paymentRegisterRequest);

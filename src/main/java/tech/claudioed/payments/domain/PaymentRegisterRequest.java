@@ -22,8 +22,10 @@ public class PaymentRegisterRequest {
 
   private String customerId;
 
-  private String crmUrl;
+  private String token;
 
   private String orderId;
+
+  private String crmId;
 
 }

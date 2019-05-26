@@ -18,10 +18,12 @@ public class TransactionRequest {
 
   private String type;
 
-  private String crmUrl;
-
   private String city;
 
   private String authCode;
+
+  private String token;
+
+  private String crmId;
 
 }
