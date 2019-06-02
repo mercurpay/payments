@@ -50,8 +50,7 @@ public class MetricsProducer {
   MeterRegistryCustomizer<MeterRegistry> registerCommonTags(Environment environment) {
     final String applicationName = environment.getProperty("spring.application.name");
     return registry -> registry.config().commonTags(
-        "app_name", applicationName,
-        "env", environment.getActiveProfiles()[0])
+        "app_name", applicationName)
         .namingConvention(new MetricsNamingConvention(applicationName));
   }
 
