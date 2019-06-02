@@ -71,7 +71,10 @@ public class RegisterPaymentService {
         final ResponseEntity<RegisteredPayment> entity =
             this.restTemplate.postForEntity(path, dataForRequest, RegisteredPayment.class);
         final RegisteredPayment transaction = entity.getBody();
-        registerPaymentSpan.setTag("payment-id",transaction.getId());
+        registerPaymentSpan.setTag("payment-id",transaction.getId())
+            .setTag("order-id",request.getOrderId())
+            .setTag("crm-id",request.getCrmId())
+            .setTag("type",request.getType());
         registerCounter.increment();
         log.info("Transaction {} registered successfully",transaction );
         registerPaymentSpan.finish();
