@@ -1,11 +1,10 @@
 package tech.claudioed.payments.domain.service;
 
-import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
-import java.util.Collections;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,49 +32,55 @@ public class RegisterPaymentService {
 
   private final Tracer tracer;
 
+  private final Timer acquirerTimer;
+
   public RegisterPaymentService(
       RestTemplate restTemplate,
       @Value("${register.service.url}") String registerSvcUrl,
-      @Qualifier("registerCounter") Counter registerCounter, Tracer tracer) {
-    this.tracer = tracer;
+      @Qualifier("registerCounter") Counter registerCounter, Tracer tracer,
+      @Qualifier("acquirerTimer")Timer acquirerTimer) {
     log.info("REGISTER SERVICE URL: {}", registerSvcUrl);
+    this.tracer = tracer;
+    this.acquirerTimer = acquirerTimer;
     this.restTemplate = restTemplate;
     this.registerSvcUrl = registerSvcUrl;
     this.registerCounter = registerCounter;
   }
 
-  @Timed(value = "transaction.register.time.seconds")
   public RegisteredPayment registerPayment(@NonNull TransactionRequest request,@NonNull String requestId) {
-    final Span activeSpan = this.tracer.activeSpan();
-    final Span registerPaymentSpan = this.tracer.buildSpan("register-payment").asChildOf(activeSpan).start();
-    try (Scope scope = tracer.scopeManager().activate(registerPaymentSpan, false)) {
-      log.info("Registering transaction  : {}", request);
-      final String path = registerSvcUrl + "/api/payments";
-      PaymentRegisterRequest paymentRegisterRequest =
-          PaymentRegisterRequest.builder()
-              .customerId(request.getCustomerId())
-              .requesterId(requestId)
-              .value(request.getValue())
-              .crmId(request.getCrmId())
-              .token(request.getToken())
-              .orderId(request.getOrderId())
-              .build();
-      log.info("Request for register payment {}",paymentRegisterRequest);
-      final HttpHeaders headers = new HttpHeaders();
-      headers.set("requester-id", requestId);
-      final HttpEntity<PaymentRegisterRequest> dataForRequest = new HttpEntity<>(paymentRegisterRequest,
-          headers);
-      final ResponseEntity<RegisteredPayment> entity =
-          this.restTemplate.postForEntity(path, dataForRequest, RegisteredPayment.class);
-      final RegisteredPayment transaction = entity.getBody();
-      registerPaymentSpan.setTag("payment-id",transaction.getId());
-      registerCounter.increment();
-      log.info("Transaction {} registered successfully",transaction );
-      registerPaymentSpan.finish();
-      return entity.getBody();
-    } catch (Exception ex) {
-      log.error("Error on register transaction " + request.toString(), ex);
-      throw new RegisterPaymentException("Error on register transaction");
-    }
+    return this.acquirerTimer.record( () -> {
+      final Span activeSpan = this.tracer.activeSpan();
+      final Span registerPaymentSpan = this.tracer.buildSpan("register-payment").asChildOf(activeSpan).start();
+      try (Scope scope = tracer.scopeManager().activate(registerPaymentSpan, false)) {
+        log.info("Registering transaction  : {}", request);
+        final String path = registerSvcUrl + "/api/payments";
+        PaymentRegisterRequest paymentRegisterRequest =
+            PaymentRegisterRequest.builder()
+                .customerId(request.getCustomerId())
+                .requesterId(requestId)
+                .value(request.getValue())
+                .crmId(request.getCrmId())
+                .token(request.getToken())
+                .orderId(request.getOrderId())
+                .build();
+        log.info("Request for register payment {}",paymentRegisterRequest);
+        final HttpHeaders headers = new HttpHeaders();
+        headers.set("requester-id", requestId);
+        final HttpEntity<PaymentRegisterRequest> dataForRequest = new HttpEntity<>(paymentRegisterRequest,
+            headers);
+        final ResponseEntity<RegisteredPayment> entity =
+            this.restTemplate.postForEntity(path, dataForRequest, RegisteredPayment.class);
+        final RegisteredPayment transaction = entity.getBody();
+        registerPaymentSpan.setTag("payment-id",transaction.getId());
+        registerCounter.increment();
+        log.info("Transaction {} registered successfully",transaction );
+        registerPaymentSpan.finish();
+        return entity.getBody();
+      } catch (Exception ex) {
+        log.error("Error on register transaction " + request.toString(), ex);
+        throw new RegisterPaymentException("Error on register transaction");
+      }
+    });
+
   }
 }
