@@ -1,0 +1,22 @@
+<configuration scan="true" scanPeriod="30 seconds">
+
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+
+  <property name="DEFAULT_PATTERN"
+    value="[%thread][%highlight(%-5level)][%cyan(%d{yyyy-MM-dd HH:mm:ss})]%5p [${springAppName},%X{x-b3-traceid:-}] - %msg%n"/>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <layout class="ch.qos.logback.classic.PatternLayout">
+      <Pattern>${DEFAULT_PATTERN}</Pattern>
+    </layout>
+  </appender>
+  <appender name="STDOUT_ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="STDOUT" />
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT_ASYNC"/>
+  </root>
+
+</configuration>
